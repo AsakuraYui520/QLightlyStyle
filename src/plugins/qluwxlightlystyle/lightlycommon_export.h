@@ -1,0 +1,15 @@
+#ifndef LIGHTLYCOMMON_EXPORT_H
+#define LIGHTLYCOMMON_EXPORT_H
+
+#ifndef QT_STATIC
+#    if defined(QT_BUILD_LIGHTLY_LIB)
+#        define LIGHTLYCOMMON_EXPORT Q_DECL_EXPORT
+#    else
+#        define LIGHTLYCOMMON_EXPORT Q_DECL_IMPORT
+#    endif
+#else
+#    define LIGHTLYCOMMON_EXPORT
+#endif
+
+
+#endif // LIGHTLYCOMMON_EXPORT_H
