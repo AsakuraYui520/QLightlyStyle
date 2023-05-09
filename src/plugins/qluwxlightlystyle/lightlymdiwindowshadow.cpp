@@ -20,6 +20,7 @@
 #include "lightlymdiwindowshadow.h"
 
 #include "lightly.h"
+#include "lightlymetrics.h"
 #include "lightlyboxshadowrenderer.h"
 #include "lightlyshadowhelper.h"
 #include "lightlystyleconfigdata.h"

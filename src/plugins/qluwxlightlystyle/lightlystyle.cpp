@@ -199,15 +199,22 @@ namespace Lightly
             QStringLiteral( "org.kde.Lightly.Style" ),
             QStringLiteral( "reparseConfiguration" ), this, SLOT(configurationChanged()) );
 #endif
-        #if QT_VERSION < 0x050D00 // Check if Qt version < 5.13
-        this->addEventFilter(qApp);
-        #else
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        qApp->installEventFilter(this);
+#else
         connect(qApp, &QApplication::paletteChanged, this, &Style::configurationChanged);
-        #endif
+#endif
+
+        auto colorSchemePath = qApp->property("KDE_COLOR_SCHEME_PATH").toString();
+        if(colorSchemePath.isEmpty())
+        {
+            colorSchemePath = ":/colors/Lightly.colors";
+            qApp->setProperty("KDE_COLOR_SCHEME_PATH",colorSchemePath);
+        }
+
         // call the slot directly; this initial call will set up things that also
         // need to be reset when the system palette changes
         loadConfiguration();
-
     }
 
     //______________________________________________________________
@@ -246,15 +253,6 @@ namespace Lightly
             _isOpaque = true;
         if(_translucentWidgets.size() > 0)
             _translucentWidgets.clear();
-
-        auto colorSchemePath = qApp->property("KDE_COLOR_SCHEME_PATH").toString();
-        if(colorSchemePath.isEmpty())
-        {
-            colorSchemePath = ":/colors/Lightly.colors";
-            qApp->setProperty("KDE_COLOR_SCHEME_PATH",colorSchemePath);
-        }
-        KSharedConfigPtr config = KSharedConfig::openConfig(colorSchemePath);
-        qApp->setPalette(KColorScheme::createApplicationPalette(config));
 
         loadConfiguration();
 
@@ -441,7 +439,9 @@ namespace Lightly
             if( widget->parentWidget() &&
                 widget->parentWidget()->parentWidget() &&
                 widget->parentWidget()->parentWidget()->inherits( "Gwenview::SideBarGroup" ) )
-            { widget->setProperty( PropertyNames::toolButtonAlignment, Qt::AlignLeft ); }
+            {
+                widget->setProperty( PropertyNames::toolButtonAlignment, Qt::AlignLeft );
+            }
 
         } else if( qobject_cast<QDockWidget*>( widget ) ) {
 
@@ -496,12 +496,15 @@ namespace Lightly
         } else if( widget->inherits( "QTipLabel" ) ) {
 
             setTranslucentBackground( widget );
-
         }
 
         // base class polishing
         ParentStyleClass::polish( widget );
+    }
 
+    void Style::polish(QPalette &palette)
+    {
+        palette = standardPalette();
     }
 
     //______________________________________________________________
@@ -610,6 +613,13 @@ namespace Lightly
 
         ParentStyleClass::unpolish( widget );
 
+    }
+
+    QPalette Style::standardPalette() const
+    {
+        auto colorSchemePath = qApp->property("KDE_COLOR_SCHEME_PATH").toString();
+        KSharedConfigPtr config = KSharedConfig::openConfig(colorSchemePath);
+        return KColorScheme::createApplicationPalette(config);
     }
 
     //______________________________________________________________
@@ -984,7 +994,6 @@ namespace Lightly
     //______________________________________________________________
     void Style::drawPrimitive( PrimitiveElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget ) const
     {
-
         StylePrimitive fcn;
         switch( element )
         {
@@ -1037,7 +1046,6 @@ namespace Lightly
     //______________________________________________________________
     void Style::drawControl( ControlElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget ) const
     {
-
         StyleControl fcn;
 
         #if LIGHTLY_HAVE_KSTYLE
@@ -1171,17 +1179,25 @@ namespace Lightly
     //_____________________________________________________________________
     bool Style::eventFilter( QObject *object, QEvent *event )
     {
-
-        if( auto dockWidget = qobject_cast<QDockWidget*>( object ) ) { return eventFilterDockWidget( dockWidget, event ); }
-        else if( auto subWindow = qobject_cast<QMdiSubWindow*>( object ) ) { return eventFilterMdiSubWindow( subWindow, event ); }
-        else if( auto commandLinkButton = qobject_cast<QCommandLinkButton*>( object ) ) { return eventFilterCommandLinkButton( commandLinkButton, event ); }
-        #if QT_VERSION < 0x050D00 // Check if Qt version < 5.13
-        else if( object == qApp && event->type() == QEvent::ApplicationPaletteChange ) { configurationChanged(); }
-        #endif
+        if (auto dockWidget = qobject_cast<QDockWidget *>(object)) {
+            return eventFilterDockWidget(dockWidget, event);
+        } else if (auto subWindow = qobject_cast<QMdiSubWindow *>(object)) {
+            return eventFilterMdiSubWindow(subWindow, event);
+        } else if (auto commandLinkButton = qobject_cast<QCommandLinkButton *>(object)) {
+            return eventFilterCommandLinkButton(commandLinkButton, event);
+        }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        else if (object == qApp && event->type() == QEvent::PaletteChange) {
+            configurationChanged();
+        }
+#endif
         // cast to QWidget
-        QWidget *widget = static_cast<QWidget*>( object );
-        if( widget->inherits( "QAbstractScrollArea" ) || widget->inherits( "KTextEditor::View" ) ) { return eventFilterScrollArea( widget, event ); }
-        else if( widget->inherits( "QComboBoxPrivateContainer" ) ) { return eventFilterComboBoxContainer( widget, event ); }
+        QWidget *widget = static_cast<QWidget *>(object);
+        if (widget->inherits("QAbstractScrollArea") || widget->inherits("KTextEditor::View")) {
+            return eventFilterScrollArea(widget, event);
+        } else if (widget->inherits("QComboBoxPrivateContainer")) {
+            return eventFilterComboBoxContainer(widget, event);
+        }
         
         // paint background
         if ( widget && event->type() == QEvent::Paint ) {
@@ -1233,7 +1249,7 @@ namespace Lightly
         }
 
         // update blur region if window is not completely transparent
-        if( widget && widget->inherits( "QWidget" ) )
+        if( widget && widget->inherits("QWidget"))
         {
             if( widget->palette().color( QPalette::Window ).alpha() == 255 )
             {
@@ -1425,7 +1441,7 @@ namespace Lightly
             auto paintEvent = static_cast<QPaintEvent*>( event );
             painter.setClipRegion( paintEvent->region() );
 
-            const auto rect( widget->rect() );
+            const auto rect(widget->rect());
             const auto& palette( widget->palette() );
             const auto background( _helper->frameBackgroundColor( palette ) );
             const auto outline( _helper->frameOutlineColor( palette ) );
@@ -1439,11 +1455,9 @@ namespace Lightly
             } else {
                 _helper->renderMenuFrame( &painter, rect, background, outline, false );
             }
-
         }
 
         return false;
-
     }
 
     //____________________________________________________________________________
@@ -1575,7 +1589,6 @@ namespace Lightly
     //____________________________________________________________________________
     bool Style::eventFilterMdiSubWindow( QMdiSubWindow* subWindow, QEvent* event )
     {
-
         if( event->type() == QEvent::Paint )
         {
             QPainter painter( subWindow );
@@ -1599,7 +1612,6 @@ namespace Lightly
                 _helper->renderMenuFrame( &painter, rect, background, QColor() );
 
             }
-
         }
 
         // continue with normal painting
@@ -2545,8 +2557,8 @@ namespace Lightly
     QRect Style::comboBoxSubControlRect( const QStyleOptionComplex* option, SubControl subControl, const QWidget* widget ) const
     {
         // cast option and check
-        const auto comboBoxOption( qstyleoption_cast<const QStyleOptionComboBox*>( option ) );
-        if( !comboBoxOption ) return ParentStyleClass::subControlRect( CC_ComboBox, option, subControl, widget );
+        const auto comboBoxOption( qstyleoption_cast<const QStyleOptionComboBox*>(option));
+        if(!comboBoxOption)return ParentStyleClass::subControlRect( CC_ComboBox, option, subControl, widget );
 
         const bool editable( comboBoxOption->editable );
         const bool flat( editable && !comboBoxOption->frame );
@@ -2556,12 +2568,12 @@ namespace Lightly
 
         switch( subControl )
         {
-            case SC_ComboBoxFrame: return flat ? rect : QRect();
-            case SC_ComboBoxListBoxPopup: return rect;
-
+            case SC_ComboBoxFrame:
+                return flat ? rect : QRect();
+            case SC_ComboBoxListBoxPopup:
+                return rect;
             case SC_ComboBoxArrow:
             {
-
                 // take out frame width
                 if( !flat ) rect = insideMargin( rect, Metrics::Frame_FrameWidth );
 
@@ -2573,12 +2585,9 @@ namespace Lightly
 
                 arrowRect = centerRect( arrowRect, Metrics::MenuButton_IndicatorWidth, Metrics::MenuButton_IndicatorWidth );
                 return visualRect( option, arrowRect );
-
             }
-
             case SC_ComboBoxEditField:
             {
-
                 QRect labelRect;
                 const int frameWidth( pixelMetric( PM_ComboBoxFrameWidth, option, widget ) );
                 labelRect = QRect(
@@ -2591,11 +2600,9 @@ namespace Lightly
                 { labelRect.adjust( frameWidth, frameWidth, 0, -frameWidth ); }
 
                 return visualRect( option, labelRect );
-
             }
-
-            default: break;
-
+            default:
+                break;
         }
 
         return ParentStyleClass::subControlRect( CC_ComboBox, option, subControl, widget );
@@ -3367,7 +3374,6 @@ namespace Lightly
     //______________________________________________________________
     bool Style::drawFramePrimitive( const QStyleOption* option, QPainter* painter, const QWidget* widget ) const
     {
-
         // copy palette and rect
         const auto& palette( option->palette );
         const auto& rect( option->rect );
@@ -3692,7 +3698,6 @@ namespace Lightly
     //___________________________________________________________________________________
     bool Style::drawFrameWindowPrimitive( const QStyleOption* option, QPainter* painter, const QWidget* ) const
     {
-
         // copy rect and palette
         const auto& rect( option->rect );
         const auto& palette( option->palette );
@@ -3704,7 +3709,6 @@ namespace Lightly
         _helper->renderMenuFrame( painter, rect, QColor(), outline );
 
         return true;
-
     }
 
     //___________________________________________________________________________________
@@ -4029,17 +4033,17 @@ namespace Lightly
         if( widget && !widget->isWindow() )
             return true;
 
-        const auto& palette( option->palette );
-        const auto outline( _helper->isDarkTheme( palette ) ? QColor( 255, 255, 255, 30) : QColor() );
-        const bool hasAlpha( _helper->hasAlphaChannel( widget ) );
+        const auto& palette(option->palette);
+        const auto outline(_helper->isDarkTheme( palette ) ? QColor( 255, 255, 255, 30) : /*QColor()*/_helper->frameOutlineColor( palette ) );
+        const bool hasAlpha(_helper->hasAlphaChannel(widget));
         //auto background( _helper->frameBackgroundColor( palette ) );
-        auto background (palette.color( QPalette::Base ));
+        auto background (palette.color(QPalette::Base));
 
-        if ( hasAlpha ) {
+        if (hasAlpha) {
             background.setAlphaF(StyleConfigData::menuOpacity() / 100.0);
         }
 
-        _helper->renderMenuFrame( painter, option->rect, background, outline, hasAlpha );
+        _helper->renderMenuFrame(painter, option->rect, background, outline, hasAlpha );
 
         return true;
     }
@@ -4886,12 +4890,15 @@ namespace Lightly
 
         QPalette::ColorRole textRole;
         if( flat )  {
-
-            if( hasFocus && sunken ) textRole = QPalette::HighlightedText;
-            else textRole = QPalette::WindowText;
-
-        } else if( option->state & State_HasFocus || sunken) textRole = QPalette::HighlightedText;
-        else textRole = QPalette::ButtonText;
+            if( hasFocus && sunken )
+                textRole = QPalette::HighlightedText;
+            else
+                textRole = QPalette::WindowText;
+        }
+        else if( option->state & State_HasFocus || sunken)
+            textRole = QPalette::HighlightedText;
+        else
+            textRole = QPalette::ButtonText;
 
         // change pen color directly
         painter->setPen( QPen( option->palette.color( textRole ), 1 ) );
@@ -7017,7 +7024,6 @@ namespace Lightly
     //______________________________________________________________
     bool Style::drawComboBoxComplexControl( const QStyleOptionComplex* option, QPainter* painter, const QWidget* widget ) const
     {
-
         // cast option and check
         const auto comboBoxOption( qstyleoption_cast<const QStyleOptionComboBox*>( option ) );
         if( !comboBoxOption ) return true;
@@ -7041,28 +7047,23 @@ namespace Lightly
         // frame
         if( option->subControls & SC_ComboBoxFrame )
         {
-
-            if( editable )
+            if(editable)
             {
-
                 flat |= ( rect.height() <= 2*Metrics::Frame_FrameWidth + Metrics::MenuButton_IndicatorWidth );
                 if( flat )
                 {
-
                     const auto &background = palette.color( QPalette::Base );
 
                     painter->setBrush( background );
                     painter->setPen( Qt::NoPen );
                     painter->drawRect( rect );
-
-                } else {
-
+                }
+                else
                     drawPrimitive( PE_FrameLineEdit, option, painter, widget );
 
-                }
-
-            } else {
-
+            }
+            else
+            {
                 // update animation state
                 // hover takes precedence over focus
                 _animations->inputWidgetEngine().updateState( widget, AnimationHover, mouseOver );
@@ -7070,14 +7071,14 @@ namespace Lightly
                 const AnimationMode mode( _animations->inputWidgetEngine().buttonAnimationMode( widget ) );
                 const qreal opacity( _animations->inputWidgetEngine().buttonOpacity( widget ) );
 
-                if( flat ) {
-
+                if( flat )
+                {
                     // define colors and render
                     const auto color( _helper->toolButtonColor( palette, mouseOver, hasFocus, sunken, opacity, mode ) );
                     _helper->renderToolButtonFrame( painter, rect, color, sunken );
-
-                } else {
-
+                }
+                else
+                {
                     // define colors
                     //const auto shadow( _helper->shadowColor( palette ) );
                     //const auto outline( _helper->buttonOutlineColor( palette, mouseOver, hasFocus, opacity, mode ) );
@@ -7085,11 +7086,8 @@ namespace Lightly
 
                     // render
                     _helper->renderButtonFrame( painter, rect, background, palette, hasFocus, sunken, mouseOver, enabled, windowActive );
-
                 }
-
             }
-
         }
 
         // arrow

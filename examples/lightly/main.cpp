@@ -22,13 +22,12 @@
 #include <QApplication>
 #include <QStyleFactory>
 #include "widgetfactory.h"
-#include "form.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QApplication::setStyle("lightly");
-    qApp->setFont(QFont("Microsoft YaHei", 11));
+    QApplication::setFont(QFont("Microsoft YaHei", 11));
     WidgetFactory fact;
     fact.show();
     return app.exec();

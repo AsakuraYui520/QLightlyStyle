@@ -22,6 +22,7 @@
 
 
 #include "lightly.h"
+#include "lightlymetrics.h"
 #include "lightlystyleconfigdata.h"
 #include "lightlyanimationdata.h"
 #include "config-lightly.h"

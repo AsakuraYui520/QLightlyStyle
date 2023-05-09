@@ -406,7 +406,6 @@ namespace Lightly
     //_______________________________________________________
     bool ShadowHelper::acceptWidget( QWidget* widget ) const
     {
-
         // flags
         if( widget->property( PropertyNames::netWMSkipShadow ).toBool() ) return false;
         if( widget->property( PropertyNames::netWMForceShadow ).toBool() ) return true;

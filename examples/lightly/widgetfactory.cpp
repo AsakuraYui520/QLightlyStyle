@@ -66,7 +66,6 @@ WidgetFactory::WidgetFactory(QWidget *parent)
 
     // Checkboxes
     d->ui.checkbox3->setCheckState(Qt::PartiallyChecked);
-    d->ui.checkbox2->setCheckState(Qt::PartiallyChecked);
     d->ui.checkbox6->setCheckState(Qt::PartiallyChecked);
 
     // Buttons

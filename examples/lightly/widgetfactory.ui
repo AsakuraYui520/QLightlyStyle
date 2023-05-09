@@ -181,6 +181,12 @@
      </item>
      <item>
       <widget class="QComboBox" name="combobox1">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>40</height>
+        </size>
+       </property>
        <property name="toolTip">
         <string>QComboBox</string>
        </property>
@@ -203,6 +209,12 @@
      </item>
      <item>
       <widget class="QComboBox" name="combobox2">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>40</height>
+        </size>
+       </property>
        <property name="toolTip">
         <string>QComboBox</string>
        </property>
@@ -228,6 +240,12 @@
      </item>
      <item>
       <widget class="QComboBox" name="combobox3">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>40</height>
+        </size>
+       </property>
        <property name="toolTip">
         <string>QComboBox</string>
        </property>
@@ -1045,7 +1063,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <x>10</x>
            <y>30</y>
            <width>131</width>
-           <height>35</height>
+           <height>40</height>
           </rect>
          </property>
         </widget>

@@ -20,7 +20,7 @@
 #include "lightlybusyindicatorengine.h"
 
 #include "lightly.h"
-
+#include "lightlymetrics.h"
 #include <QVariant>
 
 namespace Lightly

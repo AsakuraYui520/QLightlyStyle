@@ -42,7 +42,7 @@ public:
     Q_DECLARE_FLAGS(OpenFlags, OpenFlag)
 
     explicit KConfig(const QString & fileName, OpenFlags mode = FullConfig)
-        :settings(fileName, QSettings::IniFormat)
+        :_settings(fileName, QSettings::IniFormat)
     {
         _name = fileName;
         Q_UNUSED(mode)
@@ -50,21 +50,21 @@ public:
 
     QString name() const { return _name; }
 
-    bool hasGroup(const QString & group) const { return settings.childGroups().contains(group); }
+    bool hasGroup(const QString & group) const { return _settings.childGroups().contains(group); }
 
     QMap<QString,QVariant> group(const QString & group)
     {
-        settings.beginGroup(group);
-        const QStringList keys = settings.allKeys();
+        _settings.beginGroup(group);
+        const QStringList keys = _settings.allKeys();
         QMap<QString,QVariant> entryMap;
         for(const auto& key : keys)
-            entryMap.insert(key,settings.value(key));
-        settings.endGroup();
+            entryMap.insert(key,_settings.value(key));
+        _settings.endGroup();
 
         return entryMap;
     }
 protected:
-    QSettings settings;
+    QSettings _settings;
     QString _name;
 };
 
@@ -151,13 +151,13 @@ public:
     }
 
     template<typename T>
-    T readEntry(const QString & name, const T defaultValue = T()) const
+    T readEntry(const QString & name, const T& defaultValue = T()) const
     {
         return entryMap.value(name, defaultValue).value<T>();
     }
 
     template<>
-    QColor readEntry(const QString & name, const QColor defaultValue) const
+    QColor readEntry(const QString & name, const QColor& defaultValue) const
     {
         QStringList strRGB =  entryMap.value(name, defaultValue).toStringList();
         if(strRGB.size() == 3)

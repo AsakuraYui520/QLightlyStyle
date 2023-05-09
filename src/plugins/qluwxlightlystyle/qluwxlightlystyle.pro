@@ -49,6 +49,7 @@ HEADERS += \
     lightlyframeshadow.h \
     lightlyhelper.h \
     lightlymdiwindowshadow.h \
+    lightlymetrics.h \
     lightlymnemonics.h \
     lightlypropertynames.h \
     lightlyshadowhelper.h \

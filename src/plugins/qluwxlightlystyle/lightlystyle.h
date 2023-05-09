@@ -95,8 +95,13 @@ public:
     //* widget polishing
     void polish( QWidget* ) override;
 
+    //* palette polishing
+    void polish(QPalette &palette) override;
+
     //* widget unpolishing
     void unpolish( QWidget* ) override;
+
+    QPalette standardPalette() const override;
 
     //* polish scrollarea
     void polishScrollArea( QAbstractScrollArea* );

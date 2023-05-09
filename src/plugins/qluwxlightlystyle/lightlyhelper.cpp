@@ -44,8 +44,9 @@ namespace Lightly
     static const qreal arrowShade = 0.15;
 
     //____________________________________________________________________
-    Helper::Helper( KSharedConfig::Ptr config, QObject *parent ):
-        _config( std::move( config ) )
+    Helper::Helper( KSharedConfig::Ptr config, QObject *parent )
+        : QObject(parent)
+        ,_config( std::move( config ) )
     {
         
         if ( qApp ) {
@@ -84,21 +85,18 @@ namespace Lightly
         _activeTitleBarColor = appGroup.readEntry( "activeBackground", globalGroup.readEntry( "activeBackground", palette.color( QPalette::Active, QPalette::Highlight ) ) );
         _activeTitleBarTextColor = appGroup.readEntry( "activeForeground", globalGroup.readEntry( "activeForeground", palette.color( QPalette::Active, QPalette::HighlightedText ) ) );
         _inactiveTitleBarColor = appGroup.readEntry( "inactiveBackground", globalGroup.readEntry( "inactiveBackground", palette.color( QPalette::Disabled, QPalette::Highlight ) ) );
-        _inactiveTitleBarTextColor = appGroup.readEntry( "inactiveForeground", globalGroup.readEntry( "inactiveForeground", palette.color( QPalette::Disabled, QPalette::HighlightedText ) ) );
-        
+        _inactiveTitleBarTextColor = appGroup.readEntry( "inactiveForeground", globalGroup.readEntry( "inactiveForeground", palette.color( QPalette::Disabled, QPalette::HighlightedText ) ) );    
     }
 
     //____________________________________________________________________
     QColor Helper::frameOutlineColor( const QPalette& palette, bool mouseOver, bool hasFocus, qreal opacity, AnimationMode mode ) const
     {
-
         QColor outline( KColorUtils::mix( palette.color( QPalette::Window ), palette.color( QPalette::WindowText ), 0.25 ) );
         //QColor outline( palette.color( QPalette::QPalette::AlternateBase ) );
 
         // focus takes precedence over hover
         if( mode == AnimationFocus )
         {
-
             const QColor focus( focusColor( palette ) );
             const QColor hover( hoverColor( palette ) );
 
@@ -115,9 +113,7 @@ namespace Lightly
             outline = KColorUtils::mix( outline, hover, opacity );
 
         } else if( mouseOver ) {
-
             outline = hoverColor( palette );
-
         }
 
         return outline;
@@ -139,7 +135,6 @@ namespace Lightly
     //____________________________________________________________________
     QColor Helper::sidePanelOutlineColor( const QPalette& palette, bool hasFocus, qreal opacity, AnimationMode mode ) const
     {
-
         QColor outline( qGray(palette.color( QPalette::Window ).rgb()) > 150 ? QColor(0,0,0,20) : QColor(0,0,0,50) );
         return outline;
 
@@ -545,23 +540,22 @@ namespace Lightly
         const QColor& color, const QColor& outline, bool roundCorners ) const
     {
         // set brush
-        if( color.isValid() )
+        if(color.isValid())
             painter->setBrush( color );
         else
             painter->setBrush( Qt::NoBrush );
 
-        if( roundCorners )
+        if(roundCorners)
         {
-
             painter->setRenderHint( QPainter::Antialiasing );
             QRectF frameRect( rect );
             qreal radius( frameRadius( PenWidth::NoPen ) );
 
-           painter->setPen( Qt::NoPen );
+            painter->setPen( Qt::NoPen );
 
             // render
             painter->drawRoundedRect( frameRect, radius, radius );
-            
+
             //outline
             if( outline.isValid() )
             {
@@ -569,26 +563,24 @@ namespace Lightly
                 painter->setBrush( Qt::NoBrush );
                 frameRect = strokedRect( frameRect );
                 radius += 0.5;  // enhance pixel aligment
-                
+
                 painter->drawRoundedRect( frameRect, radius, radius );
             }
-
-        } else {
-
+        }
+        else
+        {
             painter->setRenderHint( QPainter::Antialiasing, false );
             QRect frameRect( rect );
             if( outline.isValid() )
             {
-
                 painter->setPen( outline );
                 frameRect.adjust( 0, 0, -1, -1 );
-
-            } else painter->setPen( Qt::NoPen );
+            }
+            else
+                painter->setPen( Qt::NoPen );
 
             painter->drawRect( frameRect );
-
         }
-
     }
     
     //______________________________________________________________________________
@@ -755,7 +747,6 @@ namespace Lightly
             painter->setBrush(alphaColor( fc.darker(200), 0.5 ) );
             painter->drawRoundedRect( frameRect, radius, radius );
         }
-        
     }
 
     //______________________________________________________________________________
@@ -1113,7 +1104,35 @@ namespace Lightly
         }
         else if( state == CheckOn || (state == CheckOff && mouseOver) )
             frameRect.translate(-1, -1);
-        
+
+        // check
+        auto leftPoint = frameRect.center();
+        leftPoint.setX(frameRect.left() + 4);
+
+        auto bottomPoint = frameRect.center();
+        bottomPoint.setX(bottomPoint.x() - 1);
+        bottomPoint.setY(frameRect.bottom() - 5);
+
+        auto rightPoint = frameRect.center();
+        rightPoint.setX(rightPoint.x() + 4.5);
+        rightPoint.setY(frameRect.top() + 5.5);
+
+        QPainterPath checkShadow;
+        checkShadow.moveTo(leftPoint);
+        checkShadow.lineTo(bottomPoint);
+        checkShadow.lineTo(rightPoint);
+
+        QPainterPath check;
+        check.moveTo(leftPoint);
+        check.lineTo(bottomPoint);
+        check.lineTo(rightPoint);
+
+        // dots
+        auto centerDot = QRectF(frameRect.center(), QSizeF(2.5, 2.5));
+        centerDot.adjust(-1, -1, -1, -1);
+        auto leftDot = centerDot.adjusted(-5, 0, -5, 0);
+        auto rightDot = centerDot.adjusted(5, 0, 5, 0);
+
         if(state == CheckOff)
         {
             // shadow
@@ -1139,33 +1158,21 @@ namespace Lightly
             }
             painter->setBrush( mouseOver ? background.lighter(110) : background );
             painter->drawRoundedRect( frameRect, radius, radius );
-            
-            //draw check mark
-            const int x = frameRect.x();
-            const int y = frameRect.y();
-            
+                    
             QPen pen = QPen();
             pen.setWidth(2);
-            pen.setCapStyle( Qt::RoundCap );
-            pen.setJoinStyle( Qt::RoundJoin );
-            pen.setColor( QColor( 0, 0, 0, 100 ) );
+            pen.setCapStyle(Qt::RoundCap);
+            pen.setJoinStyle(Qt::RoundJoin);
+            pen.setColor(QColor(0, 0, 0, 100));
             
-            painter->setPen( pen );
-            painter->setBrush( Qt::NoBrush );
+            painter->setPen(pen);
+            painter->setBrush(Qt::NoBrush);
 
-            QPainterPath checkShadow;
-            checkShadow.moveTo(6+x, 12+y);
-            checkShadow.lineTo(10+x, 17+y);
-            checkShadow.lineTo(16+x, 6+y);
-            painter->drawPath( checkShadow );
+            painter->drawPath(checkShadow);
 
-            QPainterPath check;
-            pen.setColor( color );
-            painter->setPen( pen );
-            check.moveTo(6+x, 11+y);
-            check.lineTo(10+x, 16+y);
-            check.lineTo(16+x, 5+y);
-            painter->drawPath( check );
+            pen.setColor(color);
+            painter->setPen(pen);
+            painter->drawPath(check);
 
         }
         else if( state == CheckPartial )
@@ -1179,15 +1186,10 @@ namespace Lightly
             painter->setBrush( mouseOver ? background.lighter(110) : background );
             painter->drawRoundedRect( frameRect, radius, radius );
 
-            auto centerDot = QRectF(frameRect.center(), QSizeF(3, 3));
-            centerDot.adjust(-1, -1, -1, -1);
-            auto leftDot = centerDot.adjusted(-6, 0, -6, 0);
-            auto rightDot = centerDot.adjusted(6, 0, 6, 0);
-
-            painter->setBrush( color );
-            painter->drawEllipse(leftDot);
-            painter->drawEllipse(centerDot);
-            painter->drawEllipse(rightDot);
+            painter->setBrush(color);
+            painter->drawRect(leftDot);
+            painter->drawRect(centerDot);
+            painter->drawRect(rightDot);
         }
         else if( state == CheckAnimated )
         {
@@ -1225,41 +1227,40 @@ namespace Lightly
                 painter->setBrush( alphaColor(background, animation) );
                 painter->drawRoundedRect( frameRect, radius, radius );
 
+                leftPoint += QPoint(-1,-1);
+                bottomPoint += QPoint(-1,-1);
+                rightPoint += QPoint(-1,-1);
+
+                centerDot.translate(-1,-1);
+                leftDot.translate(-1,-1);
+                rightDot.translate(-1,-1);
+
                 if(target == CheckOn)
                 {
-                    //draw check mark
-                    const int x = frameRect.x();
-                    const int y = frameRect.y();
-
                     QPen pen = QPen();
                     pen.setWidth(2);
                     pen.setCapStyle( Qt::RoundCap );
                     pen.setColor( QColor( 0, 0, 0, 100*animation ) );
 
-                    painter->setPen( pen );
+                    painter->setPen(pen);
                     painter->setBrush( Qt::NoBrush );
 
                     QPainterPath checkShadow;
-                    checkShadow.moveTo(6+x, 12+y);
-                    checkShadow.lineTo(10+x, 17+y);
-                    checkShadow.lineTo(16+x, 6+y);
-                    painter->drawPath( checkShadow );
+                    checkShadow.moveTo(leftPoint* animation);
+                    checkShadow.lineTo(bottomPoint* animation);
+                    checkShadow.lineTo(rightPoint* animation);
+                    painter->drawPath(checkShadow);
 
                     QPainterPath check;
-                    pen.setColor( alphaColor(color, 1.0*animation) );
-                    painter->setPen( pen );
-                    check.moveTo(animation*6+x, 12+y);
-                    check.lineTo(animation*10+x, 17+y);
-                    check.lineTo(animation*16+x, 6+y);
-                    painter->drawPath( check );
+                    pen.setColor(alphaColor(color, 1.0*animation));
+                    painter->setPen(pen);
+                    check.moveTo(leftPoint * animation);
+                    check.lineTo(bottomPoint* animation);
+                    check.lineTo(rightPoint* animation);
+                    painter->drawPath(check);
                 }
                 else if(target == CheckPartial)
                 {
-                    auto centerDot = QRectF(frameRect.center(), QSizeF(3, 3));
-                    centerDot.adjust(-1, -1, -1, -1);
-                    auto leftDot = centerDot.adjusted(-6, 0, -6, 0);
-                    auto rightDot = centerDot.adjusted(6, 0, 6, 0);
-
                     painter->setBrush( color );
                     if (animation >= 1 / 3)
                         painter->drawRect(leftDot);
